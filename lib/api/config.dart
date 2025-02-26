@@ -1,0 +1,5 @@
+class Config {
+  static const apiKeyEth = 'TQH23H23ZVB8ZVNRNZHY9SWVMMWFGS5V3S';
+  static const apiKeyBsc = 'UW63EB7GBWE34US6DGAB6BR6G13BF5MJH9';
+  static const apiKeyTrc = 'UW63EB7GBWE34US6DGAB6BR6G13BF5MJH9';
+}
