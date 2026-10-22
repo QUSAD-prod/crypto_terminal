@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:terminal/components/app_image.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -24,18 +25,13 @@ class _MainPageState extends State<MainPage> {
             const Spacer(flex: 95),
             Expanded(
               flex: 136,
-              child: Image.network(
-                data['logo'],
-                fit: BoxFit.fitHeight,
-              ),
+              child: appImage(data['logo'], fit: BoxFit.fitHeight),
             ),
             const Spacer(flex: 97),
             Expanded(
               flex: 784,
               child: SingleChildScrollView(
-                child: Column(
-                  children: getCryptoButtons(width, height, data),
-                ),
+                child: Column(children: getCryptoButtons(width, height, data)),
               ),
             ),
             const Spacer(flex: 40),
@@ -54,8 +50,9 @@ class _MainPageState extends State<MainPage> {
                       '/history',
                       arguments: {
                         "data": data,
-                        'id': (ModalRoute.of(context)!.settings.arguments
-                            as Map)['mainId'],
+                        'id':
+                            (ModalRoute.of(context)!.settings.arguments
+                                as Map)['mainId'],
                       },
                     ),
                     child: Center(
@@ -88,10 +85,7 @@ class _MainPageState extends State<MainPage> {
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  Image.asset(
-                    'assets/logo.png',
-                    fit: BoxFit.fitHeight,
-                  )
+                  Image.asset('assets/logo.png', fit: BoxFit.fitHeight),
                 ],
               ),
             ),
@@ -108,51 +102,37 @@ class _MainPageState extends State<MainPage> {
     bool isEven = crypto.length % 2 == 0;
     for (int i = 0; i < crypto.length; i += 2) {
       if (isEven) {
-        cryptoButtons.addAll(
-          [
+        cryptoButtons.addAll([
+          Row(
+            children: [
+              getCryptoButton(width, crypto, i, height, data),
+              SizedBox(width: 42 / 720 * width),
+              getCryptoButton(width, crypto, i + 1, height, data),
+            ],
+          ),
+          SizedBox(height: 42 / 720 * width),
+        ]);
+      } else {
+        if (crypto.length - i >= 2) {
+          cryptoButtons.addAll([
             Row(
               children: [
                 getCryptoButton(width, crypto, i, height, data),
-                SizedBox(
-                  width: 42 / 720 * width,
-                ),
+                SizedBox(width: 42 / 720 * width),
                 getCryptoButton(width, crypto, i + 1, height, data),
               ],
             ),
-            SizedBox(
-              height: 42 / 720 * width,
-            ),
-          ],
-        );
-      } else {
-        if (crypto.length - i >= 2) {
-          cryptoButtons.addAll(
-            [
-              Row(
-                children: [
-                  getCryptoButton(width, crypto, i, height, data),
-                  SizedBox(
-                    width: 42 / 720 * width,
-                  ),
-                  getCryptoButton(width, crypto, i + 1, height, data),
-                ],
-              ),
-              SizedBox(
-                height: 42 / 720 * width,
-              ),
-            ],
-          );
+            SizedBox(height: 42 / 720 * width),
+          ]);
         } else {
-          cryptoButtons.addAll(
-            [
-              Row(
-                children: [
-                  getCryptoButton(width, crypto, i, height, data),
-                  const Spacer(),
-                ],
-              ),
-            ],
-          );
+          cryptoButtons.addAll([
+            Row(
+              children: [
+                getCryptoButton(width, crypto, i, height, data),
+                const Spacer(),
+              ],
+            ),
+          ]);
         }
       }
     }
@@ -197,9 +177,7 @@ class _MainPageState extends State<MainPage> {
                     const Spacer(flex: 85),
                     Expanded(
                       flex: 130,
-                      child: SvgPicture.asset(
-                        getLogoPath(crypto[i]['name'])!,
-                      ),
+                      child: SvgPicture.asset(getLogoPath(crypto[i]['name'])!),
                     ),
                     const Spacer(flex: 70),
                   ],

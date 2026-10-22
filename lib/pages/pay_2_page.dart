@@ -1,12 +1,15 @@
 import 'dart:async';
 import 'dart:math';
-import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:terminal/api/bsc.dart';
 import 'package:terminal/api/eth.dart';
 import 'package:terminal/api/trc.dart';
 import 'package:terminal/api/types.dart';
+import 'package:terminal/components/app_image.dart';
+import 'package:terminal/components/demo.dart';
+import 'package:terminal/components/fb.dart';
 
 class Pay2Page extends StatefulWidget {
   const Pay2Page({super.key});
@@ -17,176 +20,103 @@ class Pay2Page extends StatefulWidget {
 
 class _Pay2PageState extends State<Pay2Page> {
   double initWalletBalance = 0;
+  Timer? timer;
+  bool paid = false;
 
   @override
   void initState() {
     super.initState();
-    Future.delayed(
-      Duration.zero,
-      () async {
-        String address = (ModalRoute.of(context)!.settings.arguments
-            as Map)['data']['address'];
-        String name =
-            (ModalRoute.of(context)!.settings.arguments as Map)['data']['name'];
-        late BlockchainApi api;
+    Future.delayed(Duration.zero, () async {
+      if (!mounted) return;
+      final Map args = ModalRoute.of(context)!.settings.arguments as Map;
+      String address = args['data']['address'];
+      String name = args['data']['name'];
+      final String amountAED = args['amountInAED'];
+      final int tips = args['tips'];
 
-        if (name == 'USDT BEP-20') {
-          api = BlockchainBsc(
-            (ModalRoute.of(context)!.settings.arguments as Map)['data']
-                ['api_key'] as String,
-          );
-        }
+      if (kDemoMode) {
+        timer = Timer(Demo.paymentDelay, () => onPaid(args));
+        return;
+      }
 
-        if (name == 'USDT ERC-20') {
-          api = BlockchainEth(
-            (ModalRoute.of(context)!.settings.arguments as Map)['data']
-                ['api_key'] as String,
-          );
-        }
+      late BlockchainApi api;
+
+      if (name == 'USDT BEP-20') {
+        api = BlockchainBsc(args['data']['api_key'] as String);
+      }
+
+      if (name == 'USDT ERC-20') {
+        api = BlockchainEth(args['data']['api_key'] as String);
+      }
+
+      if (name == 'USDT TRC-20') {
+        api = BlockchainTrc(args['data']['api_key'] as String);
+        initWalletBalance = await (api as BlockchainTrc).updateLastBalance(
+          address,
+        );
+      }
+
+      await api.updateLastBlock();
+      if (!mounted) return;
+
+      timer = Timer.periodic(const Duration(seconds: 1), (timer) async {
+        String amount = ((double.parse(amountAED) / 3.5) * (1 + tips / 100))
+            .toStringAsFixed(2);
 
         if (name == 'USDT TRC-20') {
-          api = BlockchainTrc(
-            (ModalRoute.of(context)!.settings.arguments as Map)['data']
-                ['api_key'] as String,
+          double balanceWallet = await (api as BlockchainTrc).updateLastBalance(
+            address,
           );
-          initWalletBalance =
-              await (api as BlockchainTrc).updateLastBalance(address);
+
+          if ((initWalletBalance + double.parse(amount)) <= balanceWallet) {
+            await onPaid(args);
+          }
+          return;
         }
 
-        await api.updateLastBlock();
+        var lastTransactions = (await api.last(address))['result'];
+        if (lastTransactions.isNotEmpty) {
+          int tokenDecimal = int.parse(lastTransactions[0]['tokenDecimal']);
+          int value = int.parse(lastTransactions[0]['value']);
 
-        Timer.periodic(
-          const Duration(seconds: 1),
-          (timer) async {
-            if (!mounted) return;
-            final String amountAED = (ModalRoute.of(context)!.settings.arguments
-                as Map)['amountInAED'];
-            final int tips =
-                (ModalRoute.of(context)!.settings.arguments as Map)['tips'];
+          String amountBlockchain = (value / pow(10, tokenDecimal))
+              .toStringAsFixed(2);
 
-            String amount = ((double.parse(amountAED) / 3.5) * (1 + tips / 100))
-                .toStringAsFixed(2);
+          if (double.parse(amountBlockchain) >= double.parse(amount)) {
+            await onPaid(args);
+          }
+        }
+      });
+    });
+  }
 
-            if (name == 'USDT TRC-20') {
-              double balanceWallet =
-                  await (api as BlockchainTrc).updateLastBalance(address);
+  @override
+  void dispose() {
+    timer?.cancel();
+    super.dispose();
+  }
 
-              if ((initWalletBalance + double.parse(amount)) <= balanceWallet) {
-                if (!mounted) return;
-                DatabaseReference ref = FirebaseDatabase.instance
-                    .ref()
-                    .child('terminals')
-                    .child(
-                      (ModalRoute.of(context)!.settings.arguments
-                              as Map)['mainId']
-                          .toString(),
-                    )
-                    .child('history');
-                List? data1 = (await ref.get()).value as List?;
-                List? data2 = [];
-                if (data1 != null) {
-                  data2.addAll(data1);
-                }
-                data2.add(
-                  {
-                    'amount': amountAED,
-                    'timestamp':
-                        DateTime.now().toLocal().millisecondsSinceEpoch,
-                  },
-                );
-                await ref.set(data2);
+  Future<void> onPaid(Map args) async {
+    if (!mounted || paid) return;
+    paid = true;
+    timer?.cancel();
 
-                if (!mounted) return;
-                Navigator.of(context).pushNamedAndRemoveUntil(
-                  '/success',
-                  (route) => false,
-                  arguments: {
-                    'logo': (ModalRoute.of(context)!.settings.arguments
-                        as Map)['mainData']['logo'],
-                    'check_logo': (ModalRoute.of(context)!.settings.arguments
-                        as Map)['mainData']['check_logo'],
-                    'cryptoName': (ModalRoute.of(context)!.settings.arguments
-                        as Map)['data']['name'],
-                    'payAddress': (ModalRoute.of(context)!.settings.arguments
-                        as Map)['data']['address'],
-                    'amountAED': (ModalRoute.of(context)!.settings.arguments
-                        as Map)['amountInAED'],
-                    'tips': (ModalRoute.of(context)!.settings.arguments
-                        as Map)['tips'],
-                    'mainId': (ModalRoute.of(context)!.settings.arguments
-                        as Map)['mainId'],
-                    'mainData': (ModalRoute.of(context)!.settings.arguments
-                        as Map)['mainData'],
-                    'result': true,
-                  },
-                );
-                return;
-              } else
-                return;
-            }
+    await FB().addHistory(args['mainId'].toString(), args['amountInAED']);
 
-            var last_transactions = (await api.last(address))['result'];
-            if (last_transactions.isNotEmpty) {
-              int tokenDecimal =
-                  int.parse(last_transactions[0]['tokenDecimal']);
-              int value = int.parse(last_transactions[0]['value']);
-
-              String amountBlockchain =
-                  (value / pow(10, tokenDecimal)).toStringAsFixed(2);
-
-              if (double.parse(amountBlockchain) >= double.parse(amount)) {
-                if (!mounted) return;
-                DatabaseReference ref = FirebaseDatabase.instance
-                    .ref()
-                    .child('terminals')
-                    .child(
-                      (ModalRoute.of(context)!.settings.arguments
-                              as Map)['mainId']
-                          .toString(),
-                    )
-                    .child('history');
-                List? data1 = (await ref.get()).value as List?;
-                List? data2 = [];
-                if (data1 != null) {
-                  data2.addAll(data1);
-                }
-                data2.add(
-                  {
-                    'amount': amountAED,
-                    'timestamp':
-                        DateTime.now().toLocal().millisecondsSinceEpoch,
-                  },
-                );
-                await ref.set(data2);
-
-                if (!mounted) return;
-                Navigator.of(context).pushNamedAndRemoveUntil(
-                  '/success',
-                  (route) => false,
-                  arguments: {
-                    'logo': (ModalRoute.of(context)!.settings.arguments
-                        as Map)['mainData']['logo'],
-                    'check_logo': (ModalRoute.of(context)!.settings.arguments
-                        as Map)['mainData']['check_logo'],
-                    'cryptoName': (ModalRoute.of(context)!.settings.arguments
-                        as Map)['data']['name'],
-                    'payAddress': (ModalRoute.of(context)!.settings.arguments
-                        as Map)['data']['address'],
-                    'amountAED': (ModalRoute.of(context)!.settings.arguments
-                        as Map)['amountInAED'],
-                    'tips': (ModalRoute.of(context)!.settings.arguments
-                        as Map)['tips'],
-                    'mainId': (ModalRoute.of(context)!.settings.arguments
-                        as Map)['mainId'],
-                    'mainData': (ModalRoute.of(context)!.settings.arguments
-                        as Map)['mainData'],
-                    'result': true,
-                  },
-                );
-              }
-            }
-          },
-        );
+    if (!mounted) return;
+    Navigator.of(context).pushNamedAndRemoveUntil(
+      '/success',
+      (route) => false,
+      arguments: {
+        'logo': args['mainData']['logo'],
+        'check_logo': args['mainData']['check_logo'],
+        'cryptoName': args['data']['name'],
+        'payAddress': args['data']['address'],
+        'amountAED': args['amountInAED'],
+        'tips': args['tips'],
+        'mainId': args['mainId'],
+        'mainData': args['mainData'],
+        'result': true,
       },
     );
   }
@@ -209,7 +139,7 @@ class _Pay2PageState extends State<Pay2Page> {
             const Spacer(flex: 77),
             Expanded(
               flex: 136,
-              child: Image.network(
+              child: appImage(
                 (ModalRoute.of(context)!.settings.arguments as Map)['logo'],
                 fit: BoxFit.fitHeight,
               ),
@@ -224,10 +154,12 @@ class _Pay2PageState extends State<Pay2Page> {
                   borderRadius: BorderRadius.circular(18),
                 ),
                 width: 295 / 1440 * height,
-                child: Image.network(
-                  data['qr'],
-                  fit: BoxFit.fitHeight,
-                ),
+                child: data['qr'] != null
+                    ? Image.network(data['qr'], fit: BoxFit.fitHeight)
+                    : QrImageView(
+                        data: data['address'],
+                        padding: EdgeInsets.zero,
+                      ),
               ),
             ),
             const Spacer(flex: 9),
@@ -249,10 +181,7 @@ class _Pay2PageState extends State<Pay2Page> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 4,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 child: Center(
                   child: FittedBox(
                     fit: BoxFit.fitWidth,
@@ -283,15 +212,9 @@ class _Pay2PageState extends State<Pay2Page> {
                     const Spacer(flex: 36),
                     Row(
                       children: [
-                        Text(
-                          'Amount in AED: ',
-                          style: getStyle(height),
-                        ),
+                        Text('Amount in AED: ', style: getStyle(height)),
                         const Spacer(),
-                        Text(
-                          "$amount AED",
-                          style: getStyle(height),
-                        ),
+                        Text("$amount AED", style: getStyle(height)),
                       ],
                     ),
                     const Spacer(flex: 33),
@@ -303,15 +226,9 @@ class _Pay2PageState extends State<Pay2Page> {
                     const Spacer(flex: 33),
                     Row(
                       children: [
-                        Text(
-                          'Tips: ',
-                          style: getStyle(height),
-                        ),
+                        Text('Tips: ', style: getStyle(height)),
                         const Spacer(),
-                        Text(
-                          '2%',
-                          style: getStyle(height),
-                        ),
+                        Text('2%', style: getStyle(height)),
                       ],
                     ),
                     const Spacer(flex: 33),
@@ -323,15 +240,9 @@ class _Pay2PageState extends State<Pay2Page> {
                     const Spacer(flex: 33),
                     Row(
                       children: [
-                        Text(
-                          'Additional Tips: ',
-                          style: getStyle(height),
-                        ),
+                        Text('Additional Tips: ', style: getStyle(height)),
                         const Spacer(),
-                        Text(
-                          '${tips - 2}%',
-                          style: getStyle(height),
-                        ),
+                        Text('${tips - 2}%', style: getStyle(height)),
                       ],
                     ),
                     const Spacer(flex: 33),
@@ -343,15 +254,9 @@ class _Pay2PageState extends State<Pay2Page> {
                     const Spacer(flex: 33),
                     Row(
                       children: [
-                        Text(
-                          'Network: ',
-                          style: getStyle(height),
-                        ),
+                        Text('Network: ', style: getStyle(height)),
                         const Spacer(),
-                        Text(
-                          data['name'],
-                          style: getStyle(height),
-                        ),
+                        Text(data['name'], style: getStyle(height)),
                       ],
                     ),
                     const Spacer(flex: 33),
@@ -363,10 +268,7 @@ class _Pay2PageState extends State<Pay2Page> {
                     const Spacer(flex: 33),
                     Row(
                       children: [
-                        Text(
-                          'Total to Pay: ',
-                          style: getStyle(height),
-                        ),
+                        Text('Total to Pay: ', style: getStyle(height)),
                         const Spacer(),
                         Text(
                           "${((double.parse(amount) / 3.5) * (1 + tips / 100)).toStringAsFixed(2)} USDT",
@@ -425,17 +327,21 @@ class _Pay2PageState extends State<Pay2Page> {
                           borderRadius: BorderRadius.circular(14),
                           onTap: () =>
                               Navigator.of(context).pushNamedAndRemoveUntil(
-                            '/main',
-                            (route) => false,
-                            arguments: {
-                              'data': (ModalRoute.of(context)!
-                                  .settings
-                                  .arguments as Map)['mainData'],
-                              'mainId': (ModalRoute.of(context)!
-                                  .settings
-                                  .arguments as Map)['mainId'],
-                            },
-                          ),
+                                '/main',
+                                (route) => false,
+                                arguments: {
+                                  'data':
+                                      (ModalRoute.of(
+                                            context,
+                                          )!.settings.arguments
+                                          as Map)['mainData'],
+                                  'mainId':
+                                      (ModalRoute.of(
+                                            context,
+                                          )!.settings.arguments
+                                          as Map)['mainId'],
+                                },
+                              ),
                           child: Center(
                             child: Text(
                               'Home',
@@ -469,10 +375,7 @@ class _Pay2PageState extends State<Pay2Page> {
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  Image.asset(
-                    'assets/logo.png',
-                    fit: BoxFit.fitHeight,
-                  )
+                  Image.asset('assets/logo.png', fit: BoxFit.fitHeight),
                 ],
               ),
             ),

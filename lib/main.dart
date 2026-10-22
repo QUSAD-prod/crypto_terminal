@@ -1,6 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:terminal/components/demo.dart';
 import 'package:terminal/firebase_options.dart';
 import 'package:terminal/pages/history_page.dart';
 import 'package:terminal/pages/home_page.dart';
@@ -11,9 +12,13 @@ import 'package:terminal/pages/success_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  // The terminal works as a kiosk, so system bars are hidden.
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  if (!kDemoMode) {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  }
   runApp(const MainApp());
 }
 
@@ -22,13 +27,15 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setPreferredOrientations(
-      [
-        DeviceOrientation.portraitUp,
-        DeviceOrientation.portraitDown,
-      ],
-    );
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
     return MaterialApp(
+      // Android stretch overscroll distorts lists framed by fixed panels.
+      scrollBehavior: const MaterialScrollBehavior().copyWith(
+        overscroll: false,
+      ),
       theme: ThemeData(
         brightness: Brightness.light,
         useMaterial3: true,

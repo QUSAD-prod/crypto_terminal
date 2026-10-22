@@ -63,7 +63,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '23231998668',
     projectId: 'crypto-terminal-f09dd',
     storageBucket: 'crypto-terminal-f09dd.appspot.com',
-    iosClientId: '23231998668-0crn79n2465ef185bm5spoe707a0p8hr.apps.googleusercontent.com',
+    iosClientId:
+        '23231998668-0crn79n2465ef185bm5spoe707a0p8hr.apps.googleusercontent.com',
     iosBundleId: 'com.example.terminal',
   );
 }

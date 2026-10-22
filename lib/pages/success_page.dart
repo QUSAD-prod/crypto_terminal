@@ -4,8 +4,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:sunmi_printer_plus/enums.dart';
 import 'package:sunmi_printer_plus/sunmi_printer_plus.dart';
+import 'package:terminal/components/app_image.dart';
+import 'package:terminal/components/demo.dart';
 
 class SuccessPage extends StatefulWidget {
   const SuccessPage({super.key});
@@ -15,68 +16,29 @@ class SuccessPage extends StatefulWidget {
 }
 
 class _SuccessPageState extends State<SuccessPage> {
-  bool printBinded = false;
-  int paperSize = 0;
-  String serialNumber = "";
-  String printerVersion = "";
-
   bool printing = true;
 
   @override
   void initState() {
     super.initState();
-    _bindingPrinter().then(
-      (bool? isBind) async {
-        SunmiPrinter.paperSize().then(
-          (int size) {
-            setState(
-              () {
-                paperSize = size;
-              },
+    Future.delayed(Duration.zero, () async {
+      if (!mounted) return;
+      final Map args = ModalRoute.of(context)!.settings.arguments as Map;
+      // There is no Sunmi printer in demo mode.
+      final Future<void> printed = kDemoMode
+          ? Future.delayed(Demo.printDelay)
+          : myPrint(
+              args['check_logo'],
+              args['amountAED'],
+              args['tips'],
+              args['payAddress'],
+              args['cryptoName'],
+              false,
             );
-          },
-        );
-
-        SunmiPrinter.printerVersion().then(
-          (String version) {
-            setState(
-              () {
-                printerVersion = version;
-              },
-            );
-          },
-        );
-
-        SunmiPrinter.serialNumber().then(
-          (String serial) {
-            setState(
-              () {
-                serialNumber = serial;
-              },
-            );
-          },
-        );
-
-        setState(
-          () {
-            printBinded = isBind!;
-          },
-        );
-
-        await myPrint(
-          (ModalRoute.of(context)!.settings.arguments as Map)['check_logo'],
-          (ModalRoute.of(context)!.settings.arguments as Map)['amountAED'],
-          (ModalRoute.of(context)!.settings.arguments as Map)['tips'],
-          (ModalRoute.of(context)!.settings.arguments as Map)['payAddress'],
-          (ModalRoute.of(context)!.settings.arguments as Map)['cryptoName'],
-          false,
-        ).whenComplete(
-          () => setState(
-            () => printing = false,
-          ),
-        );
-      },
-    );
+      await printed.whenComplete(() {
+        if (mounted) setState(() => printing = false);
+      });
+    });
   }
 
   @override
@@ -93,7 +55,7 @@ class _SuccessPageState extends State<SuccessPage> {
             const Spacer(flex: 128),
             Expanded(
               flex: 140,
-              child: Image.network(
+              child: appImage(
                 (ModalRoute.of(context)!.settings.arguments as Map)['logo'],
               ),
             ),
@@ -166,10 +128,12 @@ class _SuccessPageState extends State<SuccessPage> {
                     onTap: () => Navigator.of(context).pushReplacementNamed(
                       '/main',
                       arguments: {
-                        'data': (ModalRoute.of(context)!.settings.arguments
-                            as Map)['mainData'],
-                        'mainId': (ModalRoute.of(context)!.settings.arguments
-                            as Map)['mainId'],
+                        'data':
+                            (ModalRoute.of(context)!.settings.arguments
+                                as Map)['mainData'],
+                        'mainId':
+                            (ModalRoute.of(context)!.settings.arguments
+                                as Map)['mainId'],
                       },
                     ),
                     child: Center(
@@ -202,10 +166,7 @@ class _SuccessPageState extends State<SuccessPage> {
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  Image.asset(
-                    'assets/logo.png',
-                    fit: BoxFit.fitHeight,
-                  )
+                  Image.asset('assets/logo.png', fit: BoxFit.fitHeight),
                 ],
               ),
             ),
@@ -216,11 +177,6 @@ class _SuccessPageState extends State<SuccessPage> {
     );
   }
 
-  Future<bool?> _bindingPrinter() async {
-    final bool? result = await SunmiPrinter.bindingPrinter();
-    return result;
-  }
-
   Future<void> myPrint(
     String logoUrl,
     String amountInAED,
@@ -229,27 +185,22 @@ class _SuccessPageState extends State<SuccessPage> {
     String cryptoName,
     bool again,
   ) async {
-    await SunmiPrinter.initPrinter();
-
-    Uint8List byteLogo =
-        (await NetworkAssetBundle(Uri.parse(logoUrl)).load(logoUrl))
-            .buffer
-            .asUint8List();
+    Uint8List byteLogo = (await NetworkAssetBundle(
+      Uri.parse(logoUrl),
+    ).load(logoUrl)).buffer.asUint8List();
 
     const web3Logo =
         'https://firebasestorage.googleapis.com/v0/b/crypto-terminal-f09dd.appspot.com/o/logo_w3p.png?alt=media&token=7c517e53-97e4-41d4-9772-78b54c4439d5';
 
-    Uint8List byteWeb3Logo =
-        (await NetworkAssetBundle(Uri.parse(web3Logo)).load(web3Logo))
-            .buffer
-            .asUint8List();
+    Uint8List byteWeb3Logo = (await NetworkAssetBundle(
+      Uri.parse(web3Logo),
+    ).load(web3Logo)).buffer.asUint8List();
 
-    await SunmiPrinter.startTransactionPrint(true);
+    final center = SunmiTextStyle(align: SunmiPrintAlign.CENTER);
+
     await SunmiPrinter.lineWrap(2);
-    await SunmiPrinter.setAlignment(SunmiPrintAlign.CENTER);
-    await SunmiPrinter.printImage(byteLogo);
+    await SunmiPrinter.printImage(byteLogo, align: SunmiPrintAlign.CENTER);
     await SunmiPrinter.lineWrap(2);
-    await SunmiPrinter.setAlignment(SunmiPrintAlign.LEFT);
     await SunmiPrinter.printText('Amount in AED: $amountInAED');
     await SunmiPrinter.printText(
       'Paid: ${((double.parse(amountInAED) / 3.5) * (1 + tips / 100)).toStringAsFixed(2)} $cryptoName',
@@ -260,19 +211,16 @@ class _SuccessPageState extends State<SuccessPage> {
     await SunmiPrinter.lineWrap(2);
     await SunmiPrinter.printText('Paid to: $payAdress');
     await SunmiPrinter.lineWrap(2);
-    await SunmiPrinter.setAlignment(SunmiPrintAlign.CENTER);
     await SunmiPrinter.printText(
-      DateFormat("dd.MM.yyyy HH:mm").format(
-        DateTime.now().toLocal(),
-      ),
+      DateFormat("dd.MM.yyyy HH:mm").format(DateTime.now().toLocal()),
+      style: center,
     );
     await SunmiPrinter.lineWrap(2);
-    await SunmiPrinter.printText('Powered by:');
-    await SunmiPrinter.printImage(byteWeb3Logo);
+    await SunmiPrinter.printText('Powered by:', style: center);
+    await SunmiPrinter.printImage(byteWeb3Logo, align: SunmiPrintAlign.CENTER);
     await SunmiPrinter.lineWrap(5);
 
-    await SunmiPrinter.exitTransactionPrint(true);
-    await SunmiPrinter.cut();
+    await SunmiPrinter.cutPaper();
 
     if (!again) {
       Timer(
@@ -287,16 +235,5 @@ class _SuccessPageState extends State<SuccessPage> {
         ),
       );
     }
-  }
-
-  Future<Uint8List> readFileBytes(String path) async {
-    ByteData fileData = await rootBundle.load(path);
-    Uint8List fileUnit8List = fileData.buffer
-        .asUint8List(fileData.offsetInBytes, fileData.lengthInBytes);
-    return fileUnit8List;
-  }
-
-  Future<Uint8List> _getImageFromAsset(String iconPath) async {
-    return await readFileBytes(iconPath);
   }
 }

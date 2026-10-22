@@ -35,7 +35,7 @@ class _Pay1PageState extends State<Pay1Page> {
                     BoxShadow(
                       offset: const Offset(0, 4),
                       blurRadius: 4,
-                      color: Colors.black.withOpacity(0.25),
+                      color: Colors.black.withValues(alpha: 0.25),
                     ),
                   ],
                 ),
@@ -44,15 +44,9 @@ class _Pay1PageState extends State<Pay1Page> {
                     const Spacer(flex: 36),
                     Row(
                       children: [
-                        Text(
-                          'Amount to Pay: ',
-                          style: getStyle(height),
-                        ),
+                        Text('Amount to Pay: ', style: getStyle(height)),
                         const Spacer(),
-                        Text(
-                          "$amount AED",
-                          style: getStyle(height),
-                        ),
+                        Text("$amount AED", style: getStyle(height)),
                       ],
                     ),
                     const Spacer(flex: 33),
@@ -64,10 +58,7 @@ class _Pay1PageState extends State<Pay1Page> {
                     const Spacer(flex: 33),
                     Row(
                       children: [
-                        Text(
-                          'Total: ',
-                          style: getStyle(height),
-                        ),
+                        Text('Total: ', style: getStyle(height)),
                         const Spacer(),
                         Text(
                           "${((double.parse(amount) / 3.5) * (1 + tips / 100)).toStringAsFixed(2)} USDT",
@@ -84,15 +75,9 @@ class _Pay1PageState extends State<Pay1Page> {
                     const Spacer(flex: 33),
                     Row(
                       children: [
-                        Text(
-                          'Tips: ',
-                          style: getStyle(height),
-                        ),
+                        Text('Tips: ', style: getStyle(height)),
                         const Spacer(),
-                        Text(
-                          '$tips%',
-                          style: getStyle(height),
-                        ),
+                        Text('$tips%', style: getStyle(height)),
                       ],
                     ),
                     const Spacer(flex: 26),
@@ -187,12 +172,15 @@ class _Pay1PageState extends State<Pay1Page> {
                         'data': data,
                         'amountInAED': amount,
                         'tips': tips,
-                        'logo': (ModalRoute.of(context)!.settings.arguments
-                            as Map)['logo'],
-                        'mainId': (ModalRoute.of(context)!.settings.arguments
-                            as Map)['mainId'],
-                        'mainData': (ModalRoute.of(context)!.settings.arguments
-                            as Map)['mainData'],
+                        'logo':
+                            (ModalRoute.of(context)!.settings.arguments
+                                as Map)['logo'],
+                        'mainId':
+                            (ModalRoute.of(context)!.settings.arguments
+                                as Map)['mainId'],
+                        'mainData':
+                            (ModalRoute.of(context)!.settings.arguments
+                                as Map)['mainData'],
                       },
                     ),
                     child: Center(
@@ -225,10 +213,7 @@ class _Pay1PageState extends State<Pay1Page> {
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  Image.asset(
-                    'assets/logo.png',
-                    fit: BoxFit.fitHeight,
-                  )
+                  Image.asset('assets/logo.png', fit: BoxFit.fitHeight),
                 ],
               ),
             ),
@@ -249,18 +234,16 @@ class _Pay1PageState extends State<Pay1Page> {
           BoxShadow(
             offset: const Offset(0, 4),
             blurRadius: 4,
-            color: Colors.black.withOpacity(0.25),
+            color: Colors.black.withValues(alpha: 0.25),
           ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () => setState(
-            () {
-              tips = value;
-            },
-          ),
+          onTap: () => setState(() {
+            tips = value;
+          }),
           borderRadius: BorderRadius.circular(12),
           child: Center(
             child: Text(
@@ -301,51 +284,37 @@ class _Pay1PageState extends State<Pay1Page> {
           onTap: () {
             if (text != '←' && text != '.') {
               if (amount != '0' && amount != '0.0') {
-                setState(
-                  () {
-                    amount += text;
-                  },
-                );
+                setState(() {
+                  amount += text;
+                });
               } else if (amount == '0.0') {
-                setState(
-                  () {
-                    amount = '0.$text';
-                  },
-                );
+                setState(() {
+                  amount = '0.$text';
+                });
               } else {
-                setState(
-                  () {
-                    amount = text;
-                  },
-                );
+                setState(() {
+                  amount = text;
+                });
               }
             } else if (text == '.') {
               if (amount != '0') {
-                setState(
-                  () {
-                    amount += text;
-                  },
-                );
+                setState(() {
+                  amount += text;
+                });
               } else {
-                setState(
-                  () {
-                    amount = '0${text}0';
-                  },
-                );
+                setState(() {
+                  amount = '0${text}0';
+                });
               }
             } else {
               if (amount.length > 1) {
-                setState(
-                  () {
-                    amount = amount.substring(0, amount.length - 1);
-                  },
-                );
+                setState(() {
+                  amount = amount.substring(0, amount.length - 1);
+                });
               } else if (amount.length == 1) {
-                setState(
-                  () {
-                    amount = '0';
-                  },
-                );
+                setState(() {
+                  amount = '0';
+                });
               }
             }
           },

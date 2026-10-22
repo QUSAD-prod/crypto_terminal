@@ -1,7 +1,10 @@
-import 'package:firebase_database/firebase_database.dart';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:terminal/components/app_image.dart';
+import 'package:terminal/components/fb.dart';
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
@@ -12,37 +15,23 @@ class HistoryPage extends StatefulWidget {
 
 class _HistoryPageState extends State<HistoryPage> {
   List history = [];
+  StreamSubscription<List>? subscription;
 
   @override
   void initState() {
     super.initState();
-    Future.delayed(
-      Duration.zero,
-      () {
-        DatabaseReference databaseReference = FirebaseDatabase.instance
-            .ref()
-            .child('terminals')
-            .child(
-              (ModalRoute.of(context)!.settings.arguments as Map)['id'],
-            )
-            .child('history');
+    Future.delayed(Duration.zero, () {
+      if (!mounted) return;
+      subscription = FB()
+          .history((ModalRoute.of(context)!.settings.arguments as Map)['id'])
+          .listen((value) => setState(() => history = value));
+    });
+  }
 
-        databaseReference.onValue.listen(
-          (event) {
-            setState(
-              () {
-                if (event.snapshot.value == null) {
-                  history = [];
-                } else {
-                  history = event.snapshot.value as List;
-                }
-                debugPrint('DEBUG!!!!!!!!!: $history');
-              },
-            );
-          },
-        );
-      },
-    );
+  @override
+  void dispose() {
+    subscription?.cancel();
+    super.dispose();
   }
 
   @override
@@ -57,10 +46,7 @@ class _HistoryPageState extends State<HistoryPage> {
           const Spacer(flex: 95),
           Expanded(
             flex: 136,
-            child: Image.network(
-              data['logo'],
-              fit: BoxFit.fitHeight,
-            ),
+            child: appImage(data['logo'], fit: BoxFit.fitHeight),
           ),
           Expanded(
             flex: 33,
@@ -71,7 +57,7 @@ class _HistoryPageState extends State<HistoryPage> {
                   BoxShadow(
                     offset: const Offset(0, 8),
                     blurRadius: 10,
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                   ),
                 ],
               ),
@@ -91,9 +77,8 @@ class _HistoryPageState extends State<HistoryPage> {
                     ),
                   )
                 : SingleChildScrollView(
-                    child: Column(
-                      children: getHistory(width, height),
-                    ),
+                    padding: const EdgeInsets.only(bottom: 18),
+                    child: Column(children: getHistory(width, height)),
                   ),
           ),
           Expanded(
@@ -105,7 +90,7 @@ class _HistoryPageState extends State<HistoryPage> {
                   BoxShadow(
                     offset: const Offset(0, -8),
                     blurRadius: 10,
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                   ),
                 ],
               ),
@@ -156,10 +141,7 @@ class _HistoryPageState extends State<HistoryPage> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                Image.asset(
-                  'assets/logo.png',
-                  fit: BoxFit.fitHeight,
-                )
+                Image.asset('assets/logo.png', fit: BoxFit.fitHeight),
               ],
             ),
           ),
@@ -198,9 +180,7 @@ class _HistoryPageState extends State<HistoryPage> {
               ),
               Text(
                 DateFormat("dd.MM.yyyy\nHH:mm").format(
-                  DateTime.fromMillisecondsSinceEpoch(
-                    history[i]['timestamp'],
-                  ),
+                  DateTime.fromMillisecondsSinceEpoch(history[i]['timestamp']),
                 ),
                 style: GoogleFonts.inter(
                   fontSize: height * 0.02,

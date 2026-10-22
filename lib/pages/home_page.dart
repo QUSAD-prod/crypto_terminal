@@ -23,20 +23,12 @@ class _HomePageState extends State<HomePage> {
         padding: EdgeInsets.symmetric(horizontal: width * 0.07),
         child: Column(
           children: [
-            const Spacer(
-              flex: 107,
-            ),
+            const Spacer(flex: 107),
             Expanded(
               flex: 131,
-              child: Center(
-                child: Image.asset(
-                  'assets/logo.png',
-                ),
-              ),
+              child: Center(child: Image.asset('assets/logo.png')),
             ),
-            const Spacer(
-              flex: 149,
-            ),
+            const Spacer(flex: 149),
             Expanded(
               flex: 105,
               child: Container(
@@ -59,9 +51,7 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
             ),
-            const Spacer(
-              flex: 46,
-            ),
+            const Spacer(flex: 46),
             Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -110,9 +100,7 @@ class _HomePageState extends State<HomePage> {
                 ),
               ],
             ),
-            const Spacer(
-              flex: 75,
-            ),
+            const Spacer(flex: 75),
             Expanded(
               flex: 105,
               child: Container(
@@ -127,14 +115,11 @@ class _HomePageState extends State<HomePage> {
                       if (id != '') {
                         Map? temp = await FB().tryGetTerminal(id);
                         if (temp != null) {
-                          if (mounted) {
+                          if (context.mounted) {
                             ScaffoldMessenger.of(context).clearSnackBars();
                             Navigator.of(context).pushReplacementNamed(
                               '/main',
-                              arguments: {
-                                'data': temp,
-                                'mainId': id,
-                              },
+                              arguments: {'data': temp, 'mainId': id},
                             );
                           }
                         } else {
@@ -165,9 +150,7 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
             ),
-            const Spacer(
-              flex: 160,
-            ),
+            const Spacer(flex: 160),
           ],
         ),
       ),
@@ -187,18 +170,14 @@ class _HomePageState extends State<HomePage> {
         child: InkWell(
           onTap: () {
             if (text != '←') {
-              setState(
-                () {
-                  id += text;
-                },
-              );
+              setState(() {
+                id += text;
+              });
             } else {
               if (id.isNotEmpty) {
-                setState(
-                  () {
-                    id = id.substring(0, id.length - 1);
-                  },
-                );
+                setState(() {
+                  id = id.substring(0, id.length - 1);
+                });
               }
             }
           },
